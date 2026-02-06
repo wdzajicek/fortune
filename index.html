@@ -3,10 +3,27 @@
 <head>
   <title>AI Fortune Terminal</title>
   <style>
-    body { background: #0a0a0a; color: #39ff14; font-family: 'Courier New', monospace; padding: 40px; }
-    #terminal { border: 1px solid #39ff14; padding: 20px; min-height: 100px; box-shadow: 0 0 10px #39ff14; }
+    @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+    body { 
+      background: #0a0a0a; 
+      color: #39ff14; 
+      font-family: 'Ubuntu Mono', monospace; 
+      padding: 40px; 
+    }
+    /* Added overflow and height for scrolling */
+    #terminal { 
+      border: 1px solid #39ff14; 
+      padding: 20px; 
+      height: 400px; 
+      overflow-y: auto; 
+      box-shadow: 0 0 10px #39ff14; 
+      display: flex;
+      flex-direction: column;
+    }
     .prompt { color: #fff; }
-    #output { display: inline; }
+    .fortune-entry { margin-bottom: 15px; }
+    #current-text { display: inline; }
     .cursor { background: #39ff14; display: inline-block; width: 10px; height: 1.2em; vertical-align: middle; animation: blink 1s infinite; }
     @keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
     button { background: #39ff14; border: none; padding: 10px 20px; margin-top: 20px; font-family: inherit; font-weight: bold; cursor: pointer; }
@@ -15,40 +32,57 @@
 </head>
 <body>
   <div id="terminal">
-    <span class="prompt">user@oracle:~$ fortune</span><br><br>
-    <div id="output"></div><span class="cursor"></span>
+    <div id="history"></div>
+    
+    <div id="active-line" style="display:none;">
+        <span class="prompt">user@oracle:~$ fortune</span><br>
+        <div id="current-text"></div><span class="cursor"></span>
+    </div>
   </div>
   <button id="fortuneBtn" onclick="generateFortune()">Get Fortune</button>
 
   <script>
     async function generateFortune() {
-      const outputElement = document.getElementById('output');
+      const history = document.getElementById('history');
+      const activeLine = document.getElementById('active-line');
+      const currentText = document.getElementById('current-text');
+      const terminal = document.getElementById('terminal');
       const btn = document.getElementById('fortuneBtn');
       
+      // If there was a previous fortune, move it to history
+      if (currentText.innerText !== "") {
+          const pastEntry = document.createElement('div');
+          pastEntry.className = 'fortune-entry';
+          pastEntry.innerHTML = `<span class="prompt">user@oracle:~$ fortune</span><br>${currentText.innerText}`;
+          history.appendChild(pastEntry);
+      }
+
+      // Prepare for new fortune
       btn.disabled = true;
-      outputElement.innerText = ""; // Clear previous
+      currentText.innerText = ""; 
+      activeLine.style.display = "block";
       
       try {
         const response = await fetch('/.netlify/functions/fortune');
         const data = await response.json();
-        const fullText = data.text;
+        const fullText = data.text || "The oracle is silent.";
         
-        // --- Typewriter Logic ---
         let index = 0;
         function typeNextChar() {
           if (index < fullText.length) {
-            outputElement.innerText += fullText.charAt(index);
+            currentText.innerText += fullText.charAt(index);
             index++;
-            setTimeout(typeNextChar, 50); // Speed in ms
+            // Scroll to bottom as it types
+            terminal.scrollTop = terminal.scrollHeight;
+            setTimeout(typeNextChar, 40);
           } else {
             btn.disabled = false;
           }
         }
         typeNextChar();
-        // ------------------------
 
       } catch (err) {
-        outputElement.innerText = "CRITICAL ERROR: AI_ORACLE_OFFLINE";
+        currentText.innerText = "CRITICAL ERROR: AI_ORACLE_OFFLINE";
         btn.disabled = false;
       }
     }
