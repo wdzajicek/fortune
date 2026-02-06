@@ -1,4 +1,4 @@
-![README](assets/img/readme.svg)
+![README](./assets/img/readme.svg)
 
 ## Add a README
 
