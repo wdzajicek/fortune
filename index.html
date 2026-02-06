@@ -3,86 +3,127 @@
 <head>
   <title>AI Fortune Terminal</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Ubuntu+Mono:wght@400;700&display=swap');
 
     body { 
       background: #0a0a0a; 
       color: #39ff14; 
       font-family: 'Ubuntu Mono', monospace; 
       padding: 40px; 
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
-    /* Added overflow and height for scrolling */
+
     #terminal { 
       border: 1px solid #39ff14; 
       padding: 20px; 
-      height: 400px; 
+      width: 100%;
+      max-width: 800px;
+      height: 450px; 
       overflow-y: auto; 
-      box-shadow: 0 0 10px #39ff14; 
-      display: flex;
-      flex-direction: column;
+      box-shadow: 0 0 15px rgba(57, 255, 20, 0.2); 
+      background: #000;
+      font-size: 18px;
     }
-    .prompt { color: #fff; }
-    .fortune-entry { margin-bottom: 15px; }
-    #current-text { display: inline; }
-    .cursor { background: #39ff14; display: inline-block; width: 10px; height: 1.2em; vertical-align: middle; animation: blink 1s infinite; }
-    @keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
-    button { background: #39ff14; border: none; padding: 10px 20px; margin-top: 20px; font-family: inherit; font-weight: bold; cursor: pointer; }
-    button:disabled { background: #1a5a0e; cursor: not-allowed; }
+
+    .prompt { color: #fff; font-weight: bold; margin-right: 8px; }
+    .history-item { margin-bottom: 12px; opacity: 0.8; }
+    
+    /* The active line is always visible now */
+    #active-line { display: block; margin-top: 5px; }
+    #current-text { display: inline; white-space: pre-wrap; }
+    
+    .cursor { 
+      background: #39ff14; 
+      display: inline-block; 
+      width: 10px; 
+      height: 1.1em; 
+      vertical-align: middle; 
+      animation: blink 1s infinite; 
+      margin-left: 2px;
+    }
+
+    @keyframes blink { 0%, 100% { opacity: 0; } 50% { opacity: 1; } }
+
+    button { 
+      background: #39ff14; 
+      border: none; 
+      padding: 12px 30px; 
+      margin-top: 25px; 
+      font-family: 'Ubuntu Mono', monospace; 
+      font-weight: bold; 
+      font-size: 16px;
+      cursor: pointer; 
+      transition: all 0.2s;
+    }
+
+    button:hover { background: #fff; box-shadow: 0 0 10px #fff; }
+    button:disabled { background: #1a5a0e; color: #0a0a0a; cursor: not-allowed; }
+
+    #terminal::-webkit-scrollbar { width: 6px; }
+    #terminal::-webkit-scrollbar-thumb { background: #1a5a0e; }
   </style>
 </head>
 <body>
+
   <div id="terminal">
     <div id="history"></div>
-    
-    <div id="active-line" style="display:none;">
-        <span class="prompt">user@oracle:~$ fortune</span><br>
-        <div id="current-text"></div><span class="cursor"></span>
+    <div id="active-line">
+        <span class="prompt">user@oracle:~$</span><span id="current-text"></span><span class="cursor"></span>
     </div>
   </div>
-  <button id="fortuneBtn" onclick="generateFortune()">Get Fortune</button>
+
+  <button id="fortuneBtn" onclick="generateFortune()">[ EXECUTE FORTUNE ]</button>
 
   <script>
     async function generateFortune() {
       const history = document.getElementById('history');
-      const activeLine = document.getElementById('active-line');
       const currentText = document.getElementById('current-text');
       const terminal = document.getElementById('terminal');
       const btn = document.getElementById('fortuneBtn');
       
-      // If there was a previous fortune, move it to history
-      if (currentText.innerText !== "") {
-          const pastEntry = document.createElement('div');
-          pastEntry.className = 'fortune-entry';
-          pastEntry.innerHTML = `<span class="prompt">user@oracle:~$ fortune</span><br>${currentText.innerText}`;
-          history.appendChild(pastEntry);
+      // 1. If there's content, archive it to history before starting new
+      if (currentText.innerText.trim().length > 0) {
+          const entry = document.createElement('div');
+          entry.className = 'history-item';
+          entry.innerHTML = `<span class="prompt">user@oracle:~$</span>${currentText.innerText}`;
+          history.appendChild(entry);
       }
 
-      // Prepare for new fortune
+      // 2. Reset the active line
       btn.disabled = true;
-      currentText.innerText = ""; 
-      activeLine.style.display = "block";
+      let frames = [" /", " -", " \\", " |"];
+      let i = 0;
+      const spinner = setInterval(() => {
+        currentText.innerText = frames[i];
+        i = (i + 1) % frames.length;
+      }, 100);
       
       try {
         const response = await fetch('/.netlify/functions/fortune');
         const data = await response.json();
-        const fullText = data.text || "The oracle is silent.";
+        const fullText = data.text || "The oracle remains silent.";
+        
+        clearInterval(spinner);
+        currentText.innerText = ""; // Clear the loading message
         
         let index = 0;
-        function typeNextChar() {
+        function type() {
           if (index < fullText.length) {
-            currentText.innerText += fullText.charAt(index);
-            index++;
-            // Scroll to bottom as it types
+            // Speed boost: type 2 chars at a time
+            currentText.innerText += fullText.slice(index, index + 2);
+            index += 2;
             terminal.scrollTop = terminal.scrollHeight;
-            setTimeout(typeNextChar, 40);
+            setTimeout(type, 30);
           } else {
             btn.disabled = false;
           }
         }
-        typeNextChar();
+        type();
 
       } catch (err) {
-        currentText.innerText = "CRITICAL ERROR: AI_ORACLE_OFFLINE";
+        currentText.innerText = "ERROR: CONNECTION_LOST";
         btn.disabled = false;
       }
     }
