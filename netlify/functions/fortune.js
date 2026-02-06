@@ -1,21 +1,35 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export const handler = async (event, context) => {
-  // Use an environment variable for the key
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash",
-    systemInstruction: "You are a Unix fortune database. Output one short, cryptic, or funny sentence. 15 words max."
-  });
+  console.log("--- Oracle Function Started ---");
+  
+  const key = process.env.GEMINI_API_KEY;
+  console.log("Checking API Key:", key ? "Key exists" : "KEY IS MISSING");
+
+  if (!key) {
+    return { statusCode: 500, body: JSON.stringify({ error: "API Key is missing from environment" }) };
+  }
+
+  const genAI = new GoogleGenerativeAI(key);
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
   try {
-    const result = await model.generateContent("Fetch fortune.");
+    console.log("Calling Gemini API...");
+    const result = await model.generateContent("Give me a one-sentence Unix fortune.");
+    const responseText = result.response.text();
+    
+    console.log("Gemini Response:", responseText);
+
     return {
-        statusCode: 200,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: result.response.text() })
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: responseText })
     };
   } catch (error) {
-    return { statusCode: 500, body: JSON.stringify({ error: "The stars are misaligned." }) };
+    console.error("Gemini API Error:", error.message);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message })
+    };
   }
 };
