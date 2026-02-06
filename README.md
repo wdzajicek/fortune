@@ -1,4 +1,6 @@
-## Add a README
+## Fortune AI
 
-Help people interested in this repository understand your project.
+A web/AI version of the `fortune` command.
+
+<https://endearing-tartufo-60bd28.netlify.app/>
 
