@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Fortune Terminal</title>
+  <style>
+    body { background: #0a0a0a; color: #39ff14; font-family: 'Courier New', monospace; padding: 40px; }
+    #terminal { border: 1px solid #39ff14; padding: 20px; min-height: 100px; box-shadow: 0 0 10px #39ff14; }
+    .prompt { color: #fff; }
+    #output { display: inline; }
+    .cursor { background: #39ff14; display: inline-block; width: 10px; height: 1.2em; vertical-align: middle; animation: blink 1s infinite; }
+    @keyframes blink { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+    button { background: #39ff14; border: none; padding: 10px 20px; margin-top: 20px; font-family: inherit; font-weight: bold; cursor: pointer; }
+    button:disabled { background: #1a5a0e; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div id="terminal">
+    <span class="prompt">user@oracle:~$ fortune</span><br><br>
+    <div id="output"></div><span class="cursor"></span>
+  </div>
+  <button id="fortuneBtn" onclick="generateFortune()">Get Fortune</button>
+
+  <script>
+    async function generateFortune() {
+      const outputElement = document.getElementById('output');
+      const btn = document.getElementById('fortuneBtn');
+      
+      btn.disabled = true;
+      outputElement.innerText = ""; // Clear previous
+      
+      try {
+        const response = await fetch('/.netlify/functions/fortune');
+        const data = await response.json();
+        const fullText = data.text;
+        
+        // --- Typewriter Logic ---
+        let index = 0;
+        function typeNextChar() {
+          if (index < fullText.length) {
+            outputElement.innerText += fullText.charAt(index);
+            index++;
+            setTimeout(typeNextChar, 50); // Speed in ms
+          } else {
+            btn.disabled = false;
+          }
+        }
+        typeNextChar();
+        // ------------------------
+
+      } catch (err) {
+        outputElement.innerText = "CRITICAL ERROR: AI_ORACLE_OFFLINE";
+        btn.disabled = false;
+      }
+    }
+  </script>
+</body>
+</html>
